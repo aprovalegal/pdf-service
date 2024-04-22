@@ -15,6 +15,8 @@ return [
 
     'name' => env('APP_NAME', 'Laravel'),
 
+    'gs_path' => env('GS_PATH', '/usr/bin/gs'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Environment

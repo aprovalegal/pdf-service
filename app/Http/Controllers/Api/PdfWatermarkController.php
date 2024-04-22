@@ -8,9 +8,11 @@ use FilippoToso\PdfWatermarker\Watermarks\ImageWatermark;
 use FilippoToso\PdfWatermarker\PdfWatermarker;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Sleep;
 use Illuminate\Support\Str;
 
 class PdfWatermarkController extends Controller
@@ -18,8 +20,8 @@ class PdfWatermarkController extends Controller
     public function __invoke(Request $request): string
     {
         $request->validate([
-                               'pdf_url'              => 'required|string|max:5120',
-                               'watermark_url'        => 'required|string|max:5120',
+                               'pdf_url'              => 'required|string|url',
+                               'watermark_url'        => 'required|string|url',
                                'watermark_position'   => 'nullable|string|in:top_left,top_right,top_center,bottom_left,bottom_right,bottom_center,middle_left,middle_right,middle_center',
                                'watermark_x'          => 'nullable|numeric',
                                'watermark_y'          => 'nullable|numeric',
@@ -27,10 +29,24 @@ class PdfWatermarkController extends Controller
                            ]);
 
         try {
-            $pdf = new Pdf($this->storeFileFromUrl($request->input('pdf_url')));
+            $originalPdfPath = $this->storeFileFromUrl($request->input('pdf_url'), 'pdf');
+            $pdfPath         = Storage::disk('local')->path('') . 'temp/' . Str::uuid()->getHex() . 'N.pdf';
+            $gsPath          = config('app.gs_path');
+            $process         = Process::timeout(10)
+                                      ->start("{$gsPath} -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dNOPAUSE -dQUIET -dBATCH -sOutputFile={$pdfPath} {$originalPdfPath}");
 
-            // The image must have a 96 DPI resolution.
-            $watermark = new ImageWatermark($this->storeFileFromUrl($request->input('watermark_url')));
+            while ($process->running()) {
+                Sleep::sleep(1);
+            }
+
+            $process->wait();
+            $errorOutput = trim($process->errorOutput());
+
+            abort_if(!empty($errorOutput), 500, $errorOutput);
+
+            $pdf = new Pdf($pdfPath);
+
+            $watermark = new ImageWatermark($this->storeFileFromUrl($request->input('watermark_url', '.png')));
 
             $watermarker = new PDFWatermarker($pdf, $watermark);
 
@@ -60,17 +76,13 @@ class PdfWatermarkController extends Controller
         return asset($pdfPath);
     }
 
-    /**
-     * @throws RequestException
-     */
-    private function storeFileFromUrl(string $fileUrl): string
+    private function storeFileFromUrl(string $fileUrl, ?string $ext = null): string
     {
-        $response = Http::get($fileUrl)
-                        ->throw();
+        $response = Http::timeout(120)->get($fileUrl);
 
         abort_if($response->failed(), 500, "Cannot get file from url {$fileUrl}");
 
-        $filePath = 'temp/' . Str::uuid()->getHex() . '.pdf';
+        $filePath = 'temp/' . Str::uuid()->getHex() . '.' . $ext;
 
         Storage::disk('local')->put($filePath, $response->body());
 
