@@ -29,7 +29,7 @@ class PdfWatermarkController extends Controller
                            ]);
 
         try {
-            $originalPdfPath = $this->storeFileFromUrl($request->input('pdf_url'), 'pdf');
+            $originalPdfPath = $this->storeFileFromUrl($request->input('pdf_url'), '.pdf');
             $pdfPath         = Storage::disk('local')->path('') . 'temp/' . Str::uuid()->getHex() . 'N.pdf';
             $gsPath          = config('app.gs_path');
             $process         = Process::timeout(10)
@@ -46,7 +46,7 @@ class PdfWatermarkController extends Controller
 
             $pdf = new Pdf($pdfPath);
 
-            $watermark = new ImageWatermark($this->storeFileFromUrl($request->input('watermark_url', '.png')));
+            $watermark = new ImageWatermark($this->storeFileFromUrl($request->input('watermark_url')));
 
             $watermarker = new PDFWatermarker($pdf, $watermark);
 
