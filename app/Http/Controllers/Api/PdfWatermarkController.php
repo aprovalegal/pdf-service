@@ -82,7 +82,7 @@ class PdfWatermarkController extends Controller
 
         abort_if($response->failed(), 500, "Cannot get file from url {$fileUrl}");
 
-        $filePath = 'temp/' . Str::uuid()->getHex() . '.' . $ext;
+        $filePath = 'temp/' . Str::uuid()->getHex() . $ext;
 
         Storage::disk('local')->put($filePath, $response->body());
 
