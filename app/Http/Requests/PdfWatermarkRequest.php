@@ -20,7 +20,6 @@ class PdfWatermarkRequest extends FormRequest
             'watermark_x'          => 'nullable|numeric',
             'watermark_y'          => 'nullable|numeric',
             'watermark_background' => 'nullable|boolean',
-            'is_test'              => 'nullable|boolean',
         ];
     }
 }
