@@ -18,6 +18,11 @@ class PdfWatermark extends Model
         'status' => PdfWatermarkStatus::class
     ];
 
+    public function getRouteKey(): string
+    {
+        return 'uuid';
+    }
+
     protected static function boot(): void
     {
         parent::boot();
