@@ -13,6 +13,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
@@ -76,7 +77,7 @@ class InsertWatermarkIntoPdf implements ShouldQueue
 
             $pdfPath = 'pdf/' . $this->randomFileName('.pdf');
 
-            $watermarker->save(Storage::disk('public')->path('') . $pdfPath);
+            $watermarker->save("public/{$pdfPath}");
         } catch (\Throwable $th) {
             $this->pdfWatermark->update([
                                             'status'        => PdfWatermarkStatus::ERROR,
@@ -87,8 +88,8 @@ class InsertWatermarkIntoPdf implements ShouldQueue
             abort(500, $th->getMessage());
         }
 
-        if (Storage::disk('local')->directoryExists($this->getTempPath())) {
-            Storage::disk('local')->deleteDirectory($this->getTempPath());
+        if (File::exists($this->getTempPath())) {
+            File::deleteDirectory($this->getTempPath());
         }
 
         $this->pdfWatermark->update([
